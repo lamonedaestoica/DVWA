@@ -85,7 +85,17 @@ class HealthController
 		if (array_key_exists ("target", $input)) {
 			$target = $input['target'];
 
-			exec ("ping -c 4 " . $target, $output, $ret_var);
+			// The target is concatenated into a shell command, so it has to look
+			// like a host and nothing else before it gets there, and it is passed
+			// as a single quoted argument even then
+			if (!filter_var ($target, FILTER_VALIDATE_IP) &&
+				!filter_var ($target, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+				$response['status_code_header'] = 'HTTP/1.1 500 Internal Server Error';
+				$response['body'] = json_encode (array ("status" => "Invalid target"));
+				return $response;
+			}
+
+			exec ("ping -c 4 " . escapeshellarg ($target), $output, $ret_var);
 
 			if ($ret_var == 0) {
 				$response['status_code_header'] = 'HTTP/1.1 200 OK';

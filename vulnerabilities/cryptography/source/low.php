@@ -1,16 +1,31 @@
 <?php
 
-function xor_this($cleartext, $key) {
-    // Our output text
-    $outText = '';
+// A repeating-key XOR is not encryption: the key length shows up in the output,
+// and anything known about the plaintext recovers the key a byte at a time. This
+// uses an authenticated cipher instead, with a random IV per message, so the same
+// text never encodes to the same string twice and an edited message is rejected.
+define ("CRYPTO_ALGO", "aes-256-gcm");
 
-    // Iterate through each character
-    for($i=0; $i<strlen($cleartext);) {
-        for($j=0; ($j<strlen($key) && $i<strlen($cleartext)); $j++,$i++) {
-            $outText .= $cleartext[$i] ^ $key[$j];
-        }
+function seal ($cleartext, $key) {
+    $iv  = openssl_random_pseudo_bytes (12);
+    $tag = "";
+    $e = openssl_encrypt ($cleartext, CRYPTO_ALGO, hash ("sha256", $key, true), OPENSSL_RAW_DATA, $iv, $tag);
+    if ($e === false) {
+        throw new Exception ("Encryption failed");
     }
-    return $outText;
+    return $iv . $tag . $e;
+}
+
+function unseal ($ciphertext, $key) {
+    if (strlen ($ciphertext) < 28) {
+        throw new Exception ("Decryption failed");
+    }
+    $e = openssl_decrypt (substr ($ciphertext, 28), CRYPTO_ALGO, hash ("sha256", $key, true),
+                          OPENSSL_RAW_DATA, substr ($ciphertext, 0, 12), substr ($ciphertext, 12, 16));
+    if ($e === false) {
+        throw new Exception ("Decryption failed");
+    }
+    return $e;
 }
 
 $key = "wachtwoord";
@@ -28,17 +43,18 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (array_key_exists ('message', $_POST)) {
 			$message = $_POST['message'];
 			if (array_key_exists ('direction', $_POST) && $_POST['direction'] == "decode") {
-				$encoded = xor_this (base64_decode ($message), $key);
+				$encoded = unseal (base64_decode ($message), $key);
 				$encode_radio_selected = " ";
 				$decode_radio_selected = " checked='checked' ";
 			} else {
-				$encoded = base64_encode(xor_this ($message, $key));
+				$encoded = base64_encode(seal ($message, $key));
 			}
 		}
 		if (array_key_exists ('password', $_POST)) {
 			$password = $_POST['password'];
-			$decoded = xor_this (base64_decode ($password), $key);
-			if ($password == "Olifant") {
+			// Constant-time comparison, so the response time does not leak how much
+			// of the secret was guessed correctly
+			if (hash_equals (hash ("sha256", "Olifant"), hash ("sha256", $password))) {
 				$success = "Welcome back user";
 			} else {
 				$errors = "Login Failed";

@@ -1,6 +1,34 @@
 <?php
+// ECB encrypts every block on its own, so identical plaintext gives identical
+// ciphertext and an attacker can cut blocks out of one token and paste them into
+// another -- changing the user or the level without ever learning the key. GCM
+// encrypts AND authenticates: any edit to the token makes decryption fail outright.
+define ("ALGO", "aes-256-gcm");
+
+function token_key ($key) {
+	// Derive a full-length key instead of using the passphrase bytes directly
+	return hash ("sha256", $key, true);
+}
+
+function encrypt ($plaintext, $key) {
+	$iv = openssl_random_pseudo_bytes (12);
+	$tag = "";
+	$e = openssl_encrypt ($plaintext, ALGO, token_key ($key), OPENSSL_RAW_DATA, $iv, $tag);
+	if ($e === false) {
+		throw new Exception ("Encryption failed");
+	}
+	return $iv . $tag . $e;
+}
+
 function decrypt ($ciphertext, $key) {
-	$e = openssl_decrypt($ciphertext, 'aes-128-ecb', $key, OPENSSL_PKCS1_PADDING);
+	if (strlen ($ciphertext) < 28) {
+		throw new Exception ("Decryption failed");
+	}
+	$iv  = substr ($ciphertext, 0, 12);
+	$tag = substr ($ciphertext, 12, 16);
+	$txt = substr ($ciphertext, 28);
+
+	$e = openssl_decrypt ($txt, ALGO, token_key ($key), OPENSSL_RAW_DATA, $iv, $tag);
 	if ($e === false) {
 		throw new Exception ("Decryption failed");
 	}
@@ -19,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			throw new Exception ("No token passed");
 		} else {
 			$token = $_POST['token'];
-			if (strlen($token) % 32 != 0) {
+			if (strlen($token) % 2 != 0 || strlen($token) < 56) {
 				throw new Exception ("Token is in wrong format");
 			} else {
 				$decrypted = decrypt(hex2bin ($token), $key);

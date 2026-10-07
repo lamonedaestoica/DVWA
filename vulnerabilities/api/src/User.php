@@ -36,26 +36,14 @@ final class User
 	}
 
 	public function toArray($version) {
-		switch ($version) {
-			case 1:
-				$a = array (
-					"id" => $this->id,
-					"name" => $this->name,
-					"level" => $this->level,
-					"password" => $this->password,
-				);
-				break;
-			default:
-			case 2:
-				$a = array (
-					"id" => $this->id,
-					"name" => $this->name,
-					"level" => $this->level,
-				);
-				break;
-		}
-
-		return $a;
+		// The password never leaves the object, whatever version is asked for.
+		// Keeping an old version alive is a compatibility decision; it is not a
+		// reason to keep serving credentials to anyone who edits the URL.
+		return array (
+			"id" => $this->id,
+			"name" => $this->name,
+			"level" => $this->level,
+		);
 	}
 }
 
