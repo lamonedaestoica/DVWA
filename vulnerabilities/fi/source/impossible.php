@@ -9,6 +9,7 @@ $configFileNames = [
     'file1.php',
     'file2.php',
     'file3.php',
+    'file4.php',
 ];
 
 if( !in_array($file, $configFileNames) ) {

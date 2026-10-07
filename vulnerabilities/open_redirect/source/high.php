@@ -1,15 +1,10 @@
 <?php
 
-// Only ever redirect to a target this page itself offers. Rejecting "http://" or
-// requiring a substring are both bypassable -- "//evil.tld" is scheme-relative and
-// carries no "http://", and "info.php" can be embedded in an absolute URL
-$allowed_targets = array (
-	"info.php?id=1",
-	"info.php?id=2",
-);
-
+// Only ever redirect to this page's own info view. The target has to match the
+// shape exactly: rejecting "http://" misses scheme-relative "//evil.tld", and
+// requiring the substring "info.php" is satisfied by an absolute URL containing it
 if (array_key_exists ("redirect", $_GET) && $_GET['redirect'] != "") {
-	if (in_array ($_GET['redirect'], $allowed_targets, true)) {
+	if (preg_match ('/^info\.php\?id=\d+$/', $_GET['redirect'])) {
 		header ("location: " . $_GET['redirect']);
 		exit;
 	} else {
