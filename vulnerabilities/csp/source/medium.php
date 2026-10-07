@@ -1,19 +1,18 @@
 <?php
 
-$headerCSP = "Content-Security-Policy: script-src 'self' 'unsafe-inline' 'nonce-TmV2ZXIgZ29pbmcgdG8gZ2l2ZSB5b3UgdXA=';";
+// A nonce only works if it is unpredictable and fresh on every response: a constant
+// one is simply a password that is printed on the page next to the lock. And
+// 'unsafe-inline' cancels the policy outright, so it is gone
+$nonce = base64_encode( random_bytes( 16 ) );
+$headerCSP = "Content-Security-Policy: script-src 'self' 'nonce-" . $nonce . "';";
 
 header($headerCSP);
-
-// Disable XSS protections so that inline alert boxes will work
-header ("X-XSS-Protection: 0");
-
-# <script nonce="TmV2ZXIgZ29pbmcgdG8gZ2l2ZSB5b3UgdXA=">alert(1)</script>
 
 ?>
 <?php
 if (isset ($_POST['include'])) {
 $page[ 'body' ] .= "
-	" . $_POST['include'] . "
+	" . htmlspecialchars( $_POST['include'], ENT_QUOTES, 'UTF-8' ) . "
 ";
 }
 $page[ 'body' ] .= '

@@ -38,31 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$token = $_POST['token'];
 
 		if ($phrase == "success") {
-			switch( dvwaSecurityLevelGet() ) {
-				case 'low':
-					if ($token == md5(str_rot13("success"))) {
-						$message = "<p style='color:red'>Well done!</p>";
-					} else {
-						$message = "<p>Invalid token.</p>";
-					}
-					break;
-				case 'medium':
-					if ($token == strrev("XXsuccessXX")) {
-						$message = "<p style='color:red'>Well done!</p>";
-					} else {
-						$message = "<p>Invalid token.</p>";
-					}
-					break;
-				case 'high':
-					if ($token == hash("sha256", hash("sha256", "XX" . strrev("success")) . "ZZ")) {
-						$message = "<p style='color:red'>Well done!</p>";
-					} else {
-						$message = "<p>Invalid token.</p>";
-					}
-					break;
-				default:
-					$vulnerabilityFile = 'impossible.php';
-					break;
+			// The token has to be something this server issued and can recognise
+			// again. Deriving it from the phrase with a published algorithm -- a
+			// rot13, a reversal, a chain of hashes -- means anyone can produce a
+			// valid one without ever loading the page, whichever function is used
+			if ( isset( $_SESSION[ 'js_token' ] ) && is_string( $token ) && hash_equals( $_SESSION[ 'js_token' ], $token ) ) {
+				$message = "<p style='color:red'>Well done!</p>";
+			} else {
+				$message = "<p>Invalid token.</p>";
 			}
 		} else {
 			$message = "<p>You got the phrase wrong.</p>";
@@ -71,6 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$message = "<p>Missing phrase or token.</p>";
 	}
 }
+
+// Issue a fresh single-use token for the form below. It is consumed by the check
+// above on the next request, so a captured one cannot be replayed
+$_SESSION[ 'js_token' ] = bin2hex( random_bytes( 16 ) );
+$js_token = $_SESSION[ 'js_token' ];
 
 if ( dvwaSecurityLevelGet() == "impossible" ) {
 $page[ 'body' ] = <<<EOF
@@ -95,7 +83,7 @@ $page[ 'body' ] = <<<EOF
 	$message
 
 	<form name="low_js" method="post">
-		<input type="hidden" name="token" value="" id="token" />
+		<input type="hidden" name="token" value="$js_token" id="token" />
 		<label for="phrase">Phrase</label> <input type="text" name="phrase" value="ChangeMe" id="phrase" />
 		<input type="submit" id="send" name="send" value="Submit" />
 	</form>
