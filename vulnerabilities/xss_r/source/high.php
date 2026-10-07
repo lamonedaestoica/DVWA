@@ -1,11 +1,10 @@
 <?php
 
-header ("X-XSS-Protection: 0");
-
 // Is there any input?
 if( array_key_exists( "name", $_GET ) && $_GET[ 'name' ] != NULL ) {
-	// Get input
-	$name = preg_replace( '/<(.*)s(.*)c(.*)r(.*)i(.*)p(.*)t/i', '', $_GET[ 'name' ] );
+	// Get input -- encoded on output, so the value is always rendered as text and
+	// never as markup. Filtering out "<script>" only moves the payload elsewhere
+	$name = htmlspecialchars( $_GET[ 'name' ] );
 
 	// Feedback for end user
 	$html .= "<pre>Hello {$name}</pre>";
