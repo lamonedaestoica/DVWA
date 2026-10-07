@@ -12,7 +12,7 @@ if( isset( $_GET[ 'Login' ] ) && isset( $_GET['username'] ) && isset( $_GET['pas
 
 	// Default values
 	$total_failed_login = 3;
-	$lockout_time       = 15;
+	$lockout_time       = 1;
 	$account_locked     = false;
 
 	// Check the database (Check user information). Guessing passwords one request
@@ -67,10 +67,10 @@ if( isset( $_GET[ 'Login' ] ) && isset( $_GET['username'] ) && isset( $_GET['pas
 		$data->execute();
 	} else {
 		// Login failed -- the same message either way, so the response cannot be
-		// used to tell a valid username from an invalid one
-		sleep( rand( 2, 4 ) );
-
-		$html .= "<pre><br />Username and/or password incorrect.<br /><br/>Alternative, the account has been locked because of too many failed logins.<br />If this is the case, <em>please try again in {$lockout_time} minutes</em>.</pre>";
+		// used to tell a valid username from an invalid one. No artificial delay:
+		// the attempt counter is the control, and a per-request sleep only makes
+		// the page easy to tie up
+		$html .= "<pre><br />Username and/or password incorrect.<br /><br/>Alternative, the account has been locked because of too many failed logins.<br />If this is the case, <em>please try again in {$lockout_time} minute(s)</em>.</pre>";
 
 		// Update bad login count
 		$data = $db->prepare( 'UPDATE users SET failed_login = (failed_login + 1) WHERE user = (:user) LIMIT 1;' );

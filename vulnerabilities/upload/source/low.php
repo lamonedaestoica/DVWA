@@ -19,15 +19,18 @@ if( isset( $_POST[ 'Upload' ] ) ) {
 	$temp_file     = ( ( ini_get( 'upload_tmp_dir' ) == '' ) ? ( sys_get_temp_dir() ) : ( ini_get( 'upload_tmp_dir' ) ) );
 	$temp_file    .= DIRECTORY_SEPARATOR . $random_name;
 
-	// Is it an image? Extension, size, declared type and actual content all have
-	// to agree -- any one of them on its own is trivially forged
+	// Is it an image? The extension and the size are checked, but what decides the
+	// format is getimagesize() reading the file itself -- the Content-Type the
+	// client sends is just another attacker-supplied string
+	$image_info = getimagesize( $uploaded_tmp );
+	$detected   = $image_info ? $image_info[2] : false;
+
 	if( ( strtolower( $uploaded_ext ) == 'jpg' || strtolower( $uploaded_ext ) == 'jpeg' || strtolower( $uploaded_ext ) == 'png' ) &&
 		( $uploaded_size < 100000 ) &&
-		( $uploaded_type == 'image/jpeg' || $uploaded_type == 'image/png' ) &&
-		getimagesize( $uploaded_tmp ) ) {
+		( $detected === IMAGETYPE_JPEG || $detected === IMAGETYPE_PNG ) ) {
 
 		// Strip any metadata, by re-encoding image (Note, using php-Imagick is recommended over php-GD)
-		if( $uploaded_type == 'image/jpeg' ) {
+		if( $detected === IMAGETYPE_JPEG ) {
 			$img = imagecreatefromjpeg( $uploaded_tmp );
 			imagejpeg( $img, $temp_file, 100);
 		}
