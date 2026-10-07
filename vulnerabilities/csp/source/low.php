@@ -10,9 +10,20 @@ header($headerCSP);
 ?>
 <?php
 if (isset ($_POST['include'])) {
-$page[ 'body' ] .= "
-	<script src='" . htmlspecialchars( $_POST['include'], ENT_QUOTES, 'UTF-8' ) . "'></script>
+	$include = $_POST['include'];
+
+	// The value becomes a <script src>, so accepting any URL means running any
+	// script. Only a path on this site is written into the page -- the policy
+	// above is the second line of defence, not the only one
+	if (is_string ($include) && preg_match ('#^/(?![/\\\\])[A-Za-z0-9._~/%-]*$#', $include)) {
+		$page[ 'body' ] .= "
+	<script src='" . htmlspecialchars( $include, ENT_QUOTES, 'UTF-8' ) . "'></script>
 ";
+	} else {
+		$page[ 'body' ] .= "
+	<p>Only scripts hosted on this site can be included.</p>
+";
+	}
 }
 $page[ 'body' ] .= '
 <form name="csp" method="POST">

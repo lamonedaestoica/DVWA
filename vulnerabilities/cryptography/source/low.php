@@ -28,7 +28,17 @@ function unseal ($ciphertext, $key) {
     return $e;
 }
 
-$key = "wachtwoord";
+// Neither the key nor the password live in the source any more. The old pair was
+// exposed twice over -- the key was readable in the code, and the cipher was weak
+// enough to recover the password from one intercepted message -- so both are
+// rotated: generated at random server side and never sent to the browser.
+if (!isset ($_SESSION['crypto_low_key'])) {
+	$_SESSION['crypto_low_key'] = random_bytes (32);
+}
+if (!isset ($_SESSION['crypto_low_password'])) {
+	$_SESSION['crypto_low_password'] = bin2hex (random_bytes (12));
+}
+$key = $_SESSION['crypto_low_key'];
 
 $errors = "";
 $success = "";
@@ -54,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			$password = $_POST['password'];
 			// Constant-time comparison, so the response time does not leak how much
 			// of the secret was guessed correctly
-			if (hash_equals (hash ("sha256", "Olifant"), hash ("sha256", $password))) {
+			if (is_string ($password) && hash_equals (hash ("sha256", $_SESSION['crypto_low_password']), hash ("sha256", $password))) {
 				$success = "Welcome back user";
 			} else {
 				$errors = "Login Failed";
@@ -98,7 +108,7 @@ $html .= "
 		You have intercepted the following message, decode it and log in below.
 		</p>
 		<p>
-		<textarea readonly='readonly' style='width: 600px; height: 28px' id='encoded' name='encoded'>Lg4WGlQZChhSFBYSEB8bBQtPGxdNQSwEHREOAQY=</textarea>
+		<textarea readonly='readonly' style='width: 600px; height: 28px' id='encoded' name='encoded'>" . htmlentities (base64_encode (seal ("Your new password is " . $_SESSION['crypto_low_password'], $key))) . "</textarea>
 		</p>
 ";
 
