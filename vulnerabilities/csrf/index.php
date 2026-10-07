@@ -67,8 +67,8 @@ $page[ 'body' ] .= "
 			<br />
 			<input type=\"submit\" value=\"Change\" name=\"Change\">\n";
 
-if( $vulnerabilityFile == 'high.php' || $vulnerabilityFile == 'impossible.php' )
-	$page[ 'body' ] .= "			" . tokenField();
+// Every level checks the Anti-CSRF token now, so every level has to emit one
+$page[ 'body' ] .= "			" . tokenField();
 
 $page[ 'body' ] .= "
 		</form>
