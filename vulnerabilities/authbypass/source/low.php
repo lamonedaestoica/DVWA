@@ -1,11 +1,16 @@
 <?php
 /*
 
-Nothing to see here for this vulnerability, have a look
-instead at the dvwaHtmlEcho function in:
+Only the admin user is allowed to access this page.
 
-* dvwa/includes/dvwaPage.inc.php
+Hiding the menu link is not access control: the page has to check the caller
+itself, because the URL is guessable and can simply be requested.
 
 */
 
+if (dvwaCurrentUser() != "admin") {
+	print "Unauthorised";
+	http_response_code(403);
+	exit;
+}
 ?>
